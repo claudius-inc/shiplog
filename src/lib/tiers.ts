@@ -139,3 +139,7 @@ export function getMaxProjects(plan: PlanId): number {
 export function getMaxTeamMembers(plan: PlanId): number {
   return getPlan(plan).features.teamMembers;
 }
+
+export function canUseAnalytics(plan: PlanId): boolean {
+  return getPlan(plan).features.apiAccess; // Analytics ships with API access (Pro+)
+}

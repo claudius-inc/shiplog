@@ -10,6 +10,7 @@ import { ChangelogFeed } from '@/components/ChangelogFeed';
 import SubscribeForm from '@/components/SubscribeForm';
 import ChangelogSearch from '@/components/ChangelogSearch';
 import { getProjectBySlug, getEntriesByProject, getEntryCount, getProjectBranding } from '@/lib/db';
+import { AnalyticsTracker } from '@/components/AnalyticsTracker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -63,6 +64,7 @@ export default async function PublicChangelogPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ ...brandingStyles, background: branding.page_bg, color: branding.text_color }}>
+      <AnalyticsTracker slug={slug} event="page_view" />
       {/* Minimal public header */}
       <header
         className="sticky top-0 z-50 border-b border-zinc-800/50 backdrop-blur-xl"

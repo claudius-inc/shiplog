@@ -13,6 +13,8 @@ import { SyncButton } from './SyncButton';
 import { EmbedCode } from './EmbedCode';
 import DigestSettings from './DigestSettings';
 import BrandingSettings from './BrandingSettings';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { ReleasesManager } from './ReleasesManager';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -98,6 +100,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
         {/* Email Digest Settings */}
         <DigestSettings projectId={project.id} />
+
+        {/* Analytics */}
+        <AnalyticsDashboard projectId={project.id} />
+
+        {/* Releases */}
+        <ReleasesManager projectId={project.id} />
 
         {/* Entries */}
         <div className="glass-card p-6 mt-8">

@@ -6,6 +6,8 @@ import { createClient, type Client, type InStatement } from '@libsql/client';
 import type { User, Project, ChangelogEntry, Changelog, Category, BrandingConfig } from './types';
 import { DEFAULT_BRANDING } from './types';
 import type { PlanId } from './tiers';
+import { ANALYTICS_SCHEMA_SQL } from './analytics';
+import { WEBHOOK_QUEUE_SCHEMA_SQL } from './webhook-queue';
 
 let _client: Client | null = null;
 
@@ -162,6 +164,19 @@ async function ensureSchema(): Promise<void> {
   for (const idx of INDEXES_SQL) {
     await client.execute(idx);
   }
+
+  // Analytics & webhook queue tables
+  for (const schemaSql of [ANALYTICS_SCHEMA_SQL, WEBHOOK_QUEUE_SCHEMA_SQL]) {
+    const stmts: InStatement[] = schemaSql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .map(s => s + ';');
+    for (const stmt of stmts) {
+      await client.execute(stmt);
+    }
+  }
+
   await client.execute('PRAGMA foreign_keys = ON');
   _initialized = true;
 }
