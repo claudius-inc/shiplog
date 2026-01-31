@@ -1,0 +1,407 @@
+openapi: 3.0.3
+info:
+  title: ShipLog Public API
+  description: |
+    The ShipLog API lets you programmatically manage your changelog entries and projects.
+    Perfect for CI/CD integrations, custom workflows, and third-party tools.
+
+    ## Authentication
+    All API requests require a Bearer token. Generate an API key from your
+    [Dashboard → API Keys](https://shiplog.dev/dashboard) page.
+
+    ```
+    Authorization: Bearer sl_live_xxxxxxxxxx
+    ```
+
+    API keys have scopes:
+    - **read** — List projects and entries
+    - **write** — Create and update entries
+
+    Keys are shown once on creation. Store them securely.
+
+    ## Rate Limits
+    - 120 requests/minute per API key
+    - 429 Too Many Requests when exceeded (includes `Retry-After` header)
+
+    ## Tier Requirements
+    The Public API is available on **Pro** and **Team** plans.
+  version: 1.0.0
+  contact:
+    name: ShipLog Support
+    url: https://github.com/Claudius-Inc/shiplog/issues
+  license:
+    name: MIT
+    url: https://github.com/Claudius-Inc/shiplog/blob/main/LICENSE
+
+servers:
+  - url: https://shiplog.dev/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local development
+
+tags:
+  - name: Projects
+    description: Manage your connected GitHub repositories
+  - name: Entries
+    description: Changelog entries (auto-generated from PRs or created manually)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: "API key from Dashboard → API Keys. Format: `sl_live_xxxxxxxxxx`"
+
+  schemas:
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique project ID
+          example: 42
+        name:
+          type: string
+          description: Repository name
+          example: shiplog
+        slug:
+          type: string
+          description: URL-safe slug for the public changelog page
+          example: shiplog
+        full_name:
+          type: string
+          description: "GitHub owner/repo format"
+          example: "Claudius-Inc/shiplog"
+        description:
+          type: string
+          nullable: true
+          description: Repository description
+          example: "Git-native changelog for modern teams"
+        is_public:
+          type: boolean
+          description: Whether the source repository is public
+          example: true
+        last_synced_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time PRs were synced from GitHub
+          example: "2026-01-31T12:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: When the project was connected
+          example: "2026-01-15T08:30:00Z"
+
+    Entry:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique entry ID
+          example: 157
+        pr_number:
+          type: integer
+          description: GitHub PR number (negative for manually created entries)
+          example: 42
+        pr_title:
+          type: string
+          description: Original PR title
+          example: "Add dark mode support"
+        pr_url:
+          type: string
+          format: uri
+          description: GitHub PR URL
+          example: "https://github.com/Claudius-Inc/shiplog/pull/42"
+        pr_author:
+          type: string
+          description: GitHub username of PR author
+          example: "octocat"
+        pr_merged_at:
+          type: string
+          format: date-time
+          description: When the PR was merged
+          example: "2026-01-30T14:22:00Z"
+        category:
+          type: string
+          enum: [feature, fix, improvement, breaking]
+          description: AI-assigned or manually set category
+          example: feature
+        summary:
+          type: string
+          description: Human-readable summary (AI-generated or manual)
+          example: "Added dark mode with system preference detection"
+        emoji:
+          type: string
+          description: Category emoji
+          example: "✨"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-30T14:25:00Z"
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of matching items
+          example: 87
+        limit:
+          type: integer
+          description: Items per page (max 100)
+          example: 50
+        offset:
+          type: integer
+          description: Number of items skipped
+          example: 0
+        has_more:
+          type: boolean
+          description: Whether more items exist beyond this page
+          example: true
+
+    CreateEntryRequest:
+      type: object
+      required:
+        - project_id
+        - category
+        - summary
+      properties:
+        project_id:
+          type: integer
+          description: Project to add the entry to
+          example: 42
+        category:
+          type: string
+          enum: [feature, fix, improvement, breaking]
+          description: Entry category
+          example: feature
+        summary:
+          type: string
+          maxLength: 500
+          description: Human-readable changelog summary
+          example: "Added dark mode with system preference detection"
+        pr_number:
+          type: integer
+          description: Optional PR number to associate
+          example: 42
+        pr_title:
+          type: string
+          maxLength: 500
+          description: Optional PR title (defaults to summary)
+          example: "feat: add dark mode support"
+        pr_url:
+          type: string
+          format: uri
+          description: Optional PR URL
+          example: "https://github.com/Claudius-Inc/shiplog/pull/42"
+        pr_author:
+          type: string
+          maxLength: 100
+          description: "Author name (defaults to 'api')"
+          example: "octocat"
+        merged_at:
+          type: string
+          format: date-time
+          description: Optional merge timestamp (defaults to now)
+          example: "2026-01-30T14:22:00Z"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Unauthorized. Provide a valid API key via Authorization: Bearer <key>"
+
+security:
+  - BearerAuth: []
+
+paths:
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List projects
+      description: Returns all projects owned by the authenticated user.
+      operationId: listProjects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Project"
+              example:
+                data:
+                  - id: 42
+                    name: shiplog
+                    slug: shiplog
+                    full_name: "Claudius-Inc/shiplog"
+                    description: "Git-native changelog for modern teams"
+                    is_public: true
+                    last_synced_at: "2026-01-31T12:00:00Z"
+                    created_at: "2026-01-15T08:30:00Z"
+        "401":
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: 'Insufficient scope. "read" required.'
+
+  /entries:
+    get:
+      tags: [Entries]
+      summary: List changelog entries
+      description: |
+        Returns changelog entries for a project, with optional filtering
+        by category and pagination.
+      operationId: listEntries
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          description: Project ID to fetch entries for
+          schema:
+            type: integer
+            example: 42
+        - name: category
+          in: query
+          required: false
+          description: Filter by category
+          schema:
+            type: string
+            enum: [feature, fix, improvement, breaking]
+        - name: limit
+          in: query
+          required: false
+          description: "Items per page (default: 50, max: 100)"
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          description: Number of items to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Paginated list of entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Entry"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Missing required parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "project_id is required"
+        "401":
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Project not found or not owned by this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Project not found"
+
+    post:
+      tags: [Entries]
+      summary: Create a changelog entry
+      description: |
+        Manually create a changelog entry. Useful for CI/CD pipelines,
+        scripts, or entries not tied to a GitHub PR.
+
+        Requires a key with **write** scope.
+      operationId: createEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEntryRequest"
+            example:
+              project_id: 42
+              category: feature
+              summary: "Added dark mode with system preference detection"
+              pr_number: 42
+              pr_url: "https://github.com/Claudius-Inc/shiplog/pull/42"
+              pr_author: "octocat"
+      responses:
+        "201":
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Entry"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "project_id, category, and summary are required"
+        "401":
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Insufficient scope (write required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: 'Insufficient scope. "write" required.'
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
