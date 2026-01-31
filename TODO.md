@@ -11,13 +11,16 @@
 - [ ] Test PR fetch → AI categorization → changelog entry pipeline (needs deployed env)
 
 ## Phase 3: Deploy & Launch
-- [ ] Create Turso database for production
-- [ ] Deploy to Vercel
+- [ ] Create Turso database for production (script ready — needs Turso account)
+- [ ] Deploy to Vercel (script ready — needs Vercel account)
 - [ ] Create GitHub OAuth App for production (callback URL needs Vercel domain)
 - [ ] Set up custom domain (shiplog.dev or similar)
 - [ ] Test OAuth + sync pipeline on live deployment
-- [ ] Write launch post for Reddit (r/SideProject, r/webdev)
-- [ ] Submit to Product Hunt
+- [x] Write launch post for Reddit (r/SideProject, r/webdev) — see launch/
+- [x] Write Product Hunt launch copy — see launch/producthunt-copy.md
+- [x] Write Show HN post — see launch/hackernews-showhn.md
+- [x] Create one-command deployment script — scripts/deploy.sh
+- [x] Create deployment guide — DEPLOY.md
 - [ ] Post in relevant Discord communities
 
 ## Phase 3.5: Polish
