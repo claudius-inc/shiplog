@@ -23,7 +23,7 @@
 ## Phase 3.5: Polish
 - [x] Embeddable changelog widget (JS + JSON API + dashboard embed code)
 - [x] Email digest system (templates, subscriber mgmt, provider abstraction, API routes, dashboard settings)
-- [ ] Custom branding options (logo, colors)
+- [x] Custom branding options (logo, colors, live preview, embed support)
 - [x] Changelog search (debounced LIKE search with result UI)
 
 ## Phase 4: Monetize
