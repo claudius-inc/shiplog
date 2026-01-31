@@ -9,8 +9,19 @@ import type { Session } from './types';
 const SESSION_COOKIE = 'shiplog_session';
 const SECRET = process.env.SESSION_SECRET || 'dev-secret-change-in-production-please';
 
+// Derive key once at startup (scrypt is expensive — don't call per-request)
+// Use a proper salt derived from the secret itself for deterministic key derivation
+const SESSION_KEY_SALT = crypto.createHash('sha256').update(`shiplog-session-salt:${SECRET}`).digest().slice(0, 16);
+let _derivedKey: Buffer | null = null;
+function getDerivedKey(): Buffer {
+  if (!_derivedKey) {
+    _derivedKey = crypto.scryptSync(SECRET, SESSION_KEY_SALT, 32);
+  }
+  return _derivedKey;
+}
+
 function encrypt(data: string): string {
-  const key = crypto.scryptSync(SECRET, 'salt', 32);
+  const key = getDerivedKey();
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
@@ -21,7 +32,8 @@ function encrypt(data: string): string {
 
 function decrypt(data: string): string {
   const [ivHex, tagHex, encrypted] = data.split(':');
-  const key = crypto.scryptSync(SECRET, 'salt', 32);
+  if (!ivHex || !tagHex || !encrypted) throw new Error('Malformed session data');
+  const key = getDerivedKey();
   const iv = Buffer.from(ivHex, 'hex');
   const tag = Buffer.from(tagHex, 'hex');
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
