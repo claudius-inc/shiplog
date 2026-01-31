@@ -1,13 +1,13 @@
 # ShipLog — TODO
 
 ## Phase 2: Make It Work End-to-End
-- [ ] Verify all API routes compile and run without errors
-- [ ] Set up SQLite database initialization on first run
+- [x] Verify all API routes compile and run without errors
+- [x] Set up SQLite database initialization on first run
 - [ ] Test GitHub OAuth flow end-to-end
 - [ ] Test PR fetch → AI categorization → changelog entry pipeline
-- [ ] Build the public changelog page with real rendered entries
-- [ ] Add RSS feed endpoint
-- [ ] Landing page with clear value prop and "Connect GitHub" CTA
+- [x] Build the public changelog page with real rendered entries
+- [x] Add RSS feed endpoint
+- [x] Landing page with clear value prop and "Connect GitHub" CTA
 
 ## Phase 3: Deploy & Launch
 - [ ] Deploy to Vercel
