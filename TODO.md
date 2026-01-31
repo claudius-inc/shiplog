@@ -28,6 +28,8 @@
 - [x] Email digest system (templates, subscriber mgmt, provider abstraction, API routes, dashboard settings)
 - [x] Custom branding options (logo, colors, live preview, embed support)
 - [x] Changelog search (debounced LIKE search with result UI)
+- [x] SEO: JSON-LD structured data, sitemap.xml, robots.txt, PWA manifest, page metadata
+- [x] Error handling: global + dashboard error boundaries, 404 page, loading states
 
 ## Phase 4: Monetize
 - [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)
