@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getProjectBySlug, getEntriesByProject } from '@/lib/db';
+import { getProjectBySlug, getEntriesByProject, getProjectBranding } from '@/lib/db';
 import type { Category } from '@/lib/types';
 
 const CORS_HEADERS = {
@@ -39,11 +39,22 @@ export async function GET(
       limit,
     });
 
+    const branding = await getProjectBranding(project.id);
+
     const response = {
       project: {
         name: project.name,
         slug: project.slug,
         description: project.description,
+      },
+      branding: {
+        primary_color: branding.primary_color,
+        accent_color: branding.accent_color,
+        header_bg: branding.header_bg,
+        page_bg: branding.page_bg,
+        text_color: branding.text_color,
+        logo_url: branding.logo_url,
+        hide_powered_by: branding.hide_powered_by,
       },
       entries: entries.map((e) => ({
         id: e.id,

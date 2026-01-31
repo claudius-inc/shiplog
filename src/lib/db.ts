@@ -3,7 +3,8 @@
 // ============================================================================
 
 import { createClient, type Client, type InStatement } from '@libsql/client';
-import type { User, Project, ChangelogEntry, Changelog, Category } from './types';
+import type { User, Project, ChangelogEntry, Changelog, Category, BrandingConfig } from './types';
+import { DEFAULT_BRANDING } from './types';
 
 let _client: Client | null = null;
 
@@ -82,6 +83,20 @@ const SCHEMA_SQL = `
   );
 `;
 
+const BRANDING_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS project_branding (
+    project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+    logo_url TEXT,
+    primary_color TEXT NOT NULL DEFAULT '#6366f1',
+    accent_color TEXT NOT NULL DEFAULT '#8b5cf6',
+    header_bg TEXT NOT NULL DEFAULT '#09090b',
+    page_bg TEXT NOT NULL DEFAULT '#09090b',
+    text_color TEXT NOT NULL DEFAULT '#e4e4e7',
+    hide_powered_by INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
 const INDEXES_SQL = [
   'CREATE INDEX IF NOT EXISTS idx_entries_project ON changelog_entries(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_entries_category ON changelog_entries(category)',
@@ -106,6 +121,16 @@ async function ensureSchema(): Promise<void> {
   for (const stmt of statements) {
     await client.execute(stmt);
   }
+  // Branding table
+  const brandingStatements: InStatement[] = BRANDING_TABLE_SQL
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(s => s + ';');
+  for (const stmt of brandingStatements) {
+    await client.execute(stmt);
+  }
+
   for (const idx of INDEXES_SQL) {
     await client.execute(idx);
   }
@@ -372,6 +397,71 @@ export async function getChangelogsByProject(projectId: number): Promise<Changel
     args: [projectId],
   });
   return result.rows.map(r => rowToObject<Changelog>(r as Record<string, unknown>));
+}
+
+// ============================================================================
+// Branding Operations
+// ============================================================================
+
+export async function getProjectBranding(projectId: number): Promise<BrandingConfig> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM project_branding WHERE project_id = ?',
+    args: [projectId],
+  });
+
+  if (!result.rows[0]) {
+    return { ...DEFAULT_BRANDING };
+  }
+
+  const row = result.rows[0] as Record<string, unknown>;
+  return {
+    logo_url: (row.logo_url as string) || null,
+    primary_color: (row.primary_color as string) || DEFAULT_BRANDING.primary_color,
+    accent_color: (row.accent_color as string) || DEFAULT_BRANDING.accent_color,
+    header_bg: (row.header_bg as string) || DEFAULT_BRANDING.header_bg,
+    page_bg: (row.page_bg as string) || DEFAULT_BRANDING.page_bg,
+    text_color: (row.text_color as string) || DEFAULT_BRANDING.text_color,
+    hide_powered_by: Boolean(row.hide_powered_by),
+  };
+}
+
+export async function upsertProjectBranding(
+  projectId: number,
+  branding: Partial<BrandingConfig>
+): Promise<BrandingConfig> {
+  await ensureSchema();
+  const client = getClient();
+
+  // Merge with defaults for any missing fields
+  const current = await getProjectBranding(projectId);
+  const merged = { ...current, ...branding };
+
+  await client.execute({
+    sql: `INSERT INTO project_branding (project_id, logo_url, primary_color, accent_color, header_bg, page_bg, text_color, hide_powered_by, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          ON CONFLICT(project_id) DO UPDATE SET
+            logo_url = excluded.logo_url,
+            primary_color = excluded.primary_color,
+            accent_color = excluded.accent_color,
+            header_bg = excluded.header_bg,
+            page_bg = excluded.page_bg,
+            text_color = excluded.text_color,
+            hide_powered_by = excluded.hide_powered_by,
+            updated_at = datetime('now')`,
+    args: [
+      projectId,
+      merged.logo_url,
+      merged.primary_color,
+      merged.accent_color,
+      merged.header_bg,
+      merged.page_bg,
+      merged.text_color,
+      merged.hide_powered_by ? 1 : 0,
+    ],
+  });
+
+  return merged;
 }
 
 export { getClient };

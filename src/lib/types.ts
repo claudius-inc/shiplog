@@ -101,6 +101,27 @@ export interface AICategorization {
   emoji: string;
 }
 
+// Branding
+export interface BrandingConfig {
+  logo_url: string | null;
+  primary_color: string;    // Main accent color (buttons, links, badges)
+  accent_color: string;     // Secondary accent (highlights)
+  header_bg: string;        // Header background
+  page_bg: string;          // Page background
+  text_color: string;       // Primary text
+  hide_powered_by: boolean; // Remove "Powered by ShipLog" (paid feature)
+}
+
+export const DEFAULT_BRANDING: BrandingConfig = {
+  logo_url: null,
+  primary_color: '#6366f1',   // indigo
+  accent_color: '#8b5cf6',    // violet
+  header_bg: '#09090b',       // zinc-950
+  page_bg: '#09090b',         // zinc-950
+  text_color: '#e4e4e7',      // zinc-200
+  hide_powered_by: false,
+};
+
 // Session
 export interface Session {
   userId: number;
