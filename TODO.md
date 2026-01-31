@@ -20,8 +20,15 @@
 - [ ] Submit to Product Hunt
 - [ ] Post in relevant Discord communities
 
+## Phase 3.5: Polish
+- [x] Embeddable changelog widget (JS + JSON API + dashboard embed code)
+- [ ] Email digest templates (weekly changelog summary)
+- [ ] Custom branding options (logo, colors)
+- [ ] Changelog search
+
 ## Phase 4: Monetize
 - [ ] Add Stripe integration for paid tiers
 - [ ] Free tier: public repos only
+- [x] Widget embed (done — included in base, premium features in paid)
 - [ ] Pro tier ($9/mo): private repos, custom domain, email digests
-- [ ] Team tier ($29/mo): multiple users, widget embed, priority support
+- [ ] Team tier ($29/mo): multiple users, branded widget, priority support
