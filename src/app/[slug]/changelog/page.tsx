@@ -7,6 +7,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Logo } from '@/components/Logo';
 import { ChangelogFeed } from '@/components/ChangelogFeed';
+import SubscribeForm from '@/components/SubscribeForm';
+import ChangelogSearch from '@/components/ChangelogSearch';
 import { getProjectBySlug, getEntriesByProject, getEntryCount } from '@/lib/db';
 
 interface PageProps {
@@ -92,6 +94,15 @@ export default async function PublicChangelogPage({ params }: PageProps) {
           <p className="text-sm text-zinc-500 mt-3">
             {totalEntries} {totalEntries === 1 ? 'change' : 'changes'} recorded
           </p>
+        </div>
+
+        {/* Search */}
+        <ChangelogSearch slug={slug} />
+
+        {/* Subscribe to updates */}
+        <div className="mb-10 bg-slate-800/30 border border-slate-700/50 rounded-xl p-5">
+          <h3 className="text-sm font-medium text-slate-300 mb-3">📬 Get changelog updates in your inbox</h3>
+          <SubscribeForm slug={slug} />
         </div>
 
         {/* Changelog feed with filters */}

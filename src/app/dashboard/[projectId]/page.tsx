@@ -11,6 +11,7 @@ import { getSession } from '@/lib/session';
 import { getProjectById, getEntriesByProject, getEntryCount } from '@/lib/db';
 import { SyncButton } from './SyncButton';
 import { EmbedCode } from './EmbedCode';
+import DigestSettings from './DigestSettings';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -90,6 +91,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
         {/* Embed Widget */}
         <EmbedCode slug={project.slug} projectName={project.name} />
+
+        {/* Email Digest Settings */}
+        <DigestSettings projectId={project.id} />
 
         {/* Entries */}
         <div className="glass-card p-6 mt-8">
