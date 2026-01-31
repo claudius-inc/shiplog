@@ -31,10 +31,14 @@
 - [x] SEO: JSON-LD structured data, sitemap.xml, robots.txt, PWA manifest, page metadata
 - [x] Error handling: global + dashboard error boundaries, 404 page, loading states
 - [x] Production hardening: middleware (rate limiting, security headers, CSRF), health check endpoint, session crypto fix, input sanitization lib
-- [x] Test suite: 123 tests across sanitize, tiers, AI fallback, changelog, releases, webhook-queue (Vitest)
+- [x] Test suite: 158 tests across sanitize, tiers, AI fallback, changelog, releases, webhook-queue, parser, api-keys, notifications (Vitest)
 - [x] Analytics system: privacy-first page view tracking, widget impressions, entry clicks, referrers (Pro+ gated)
 - [x] Webhook retry queue: exponential backoff (30s→6h), dead-letter queue, auto-retry on sync failure
 - [x] Release management: CRUD API, assign entries to versioned releases, auto-generate markdown release notes
+- [x] CHANGELOG.md importer: parse Keep a Changelog + GitHub Releases, bulk import with version tracking, dashboard UI
+- [x] Slack/Discord notifications: webhook-based alerts, per-project config, test button, event filtering
+- [x] Public REST API (v1): API key auth, read/write scopes, /api/v1/projects + /api/v1/entries, Pro+ gated
+- [x] API key management: generate/revoke, expiry, scope control, dashboard component
 
 ## Phase 4: Monetize
 - [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)
