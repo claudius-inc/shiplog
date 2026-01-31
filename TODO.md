@@ -30,6 +30,7 @@
 - [x] Changelog search (debounced LIKE search with result UI)
 - [x] SEO: JSON-LD structured data, sitemap.xml, robots.txt, PWA manifest, page metadata
 - [x] Error handling: global + dashboard error boundaries, 404 page, loading states
+- [x] Production hardening: middleware (rate limiting, security headers, CSRF), health check endpoint, session crypto fix, input sanitization lib
 
 ## Phase 4: Monetize
 - [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)

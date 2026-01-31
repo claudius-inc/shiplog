@@ -111,7 +111,7 @@ function validateCategorization(result: Record<string, unknown>): AICategorizati
 export function fallbackCategorization(title: string): AICategorization {
   const lower = title.toLowerCase();
 
-  if (lower.match(/\b(break|breaking|deprecat|remov|migration)\b/)) {
+  if (lower.match(/\b(break|breaking|deprecat\w*|remov\w*|migration)\b/)) {
     return { category: 'breaking', summary: title, emoji: '⚠️' };
   }
 
