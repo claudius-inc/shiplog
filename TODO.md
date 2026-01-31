@@ -30,8 +30,13 @@
 - [x] Changelog search (debounced LIKE search with result UI)
 
 ## Phase 4: Monetize
-- [ ] Add Stripe integration for paid tiers
-- [ ] Free tier: public repos only
+- [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)
+- [x] Free tier: public repos only (enforcement in projects API)
 - [x] Widget embed (done — included in base, premium features in paid)
-- [ ] Pro tier ($9/mo): private repos, custom domain, email digests
-- [ ] Team tier ($29/mo): multiple users, branded widget, priority support
+- [x] Pro tier ($9/mo): private repos, custom domain, email digests (tiers defined, gates enforced)
+- [x] Team tier ($29/mo): multiple users, branded widget, priority support (tiers defined)
+- [x] Dashboard billing page (/dashboard/billing)
+- [x] Feature gate enforcement (branding, digest, private repos, project limits)
+- [x] UpgradePrompt component for locked features
+- [ ] Create Stripe products/prices (needs Stripe account — blocked on credentials)
+- [ ] End-to-end billing test on live deployment
