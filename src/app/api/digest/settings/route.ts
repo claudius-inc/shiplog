@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDigestSettings, upsertDigestSettings, getSubscriberCount } from '@/lib/digest';
 import { getSession } from '@/lib/session';
 import { getProjectById } from '@/lib/db';
+import { checkFeatureAccess } from '@/lib/billing';
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -45,6 +46,17 @@ export async function PUT(req: NextRequest) {
   const project = await getProjectById(projectId);
   if (!project || project.user_id !== session.userId) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // Check billing: email digests require Pro+
+  if (enabled) {
+    const digestCheck = await checkFeatureAccess(session.userId, 'emailDigests');
+    if (!digestCheck.allowed) {
+      return NextResponse.json(
+        { error: digestCheck.reason, requiredPlan: digestCheck.requiredPlan },
+        { status: 403 }
+      );
+    }
   }
 
   const settings = await upsertDigestSettings({

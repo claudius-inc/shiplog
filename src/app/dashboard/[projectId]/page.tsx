@@ -4,7 +4,7 @@
 
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Header } from '@/components/Header';
+import Header from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ChangelogEntry } from '@/components/ChangelogEntry';
 import { getSession } from '@/lib/session';
