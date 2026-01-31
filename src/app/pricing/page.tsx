@@ -2,9 +2,21 @@
 // /pricing — Public pricing page
 // ============================================================================
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { Footer } from '@/components/Footer';
+
+export const metadata: Metadata = {
+  title: 'Pricing',
+  description:
+    'Simple, transparent pricing for ShipLog. Start free with up to 2 repos. Upgrade to Pro or Team for private repos, custom branding, and more.',
+  openGraph: {
+    title: 'ShipLog Pricing — Start Free',
+    description:
+      'Simple, transparent pricing. Free for open-source. Pro at $9/mo. Team at $29/mo.',
+  },
+};
 
 const PLANS = [
   {
