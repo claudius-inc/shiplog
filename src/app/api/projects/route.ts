@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { createProject, getProjectsByUser, updateProjectSync } from '@/lib/db';
 import { createGitHubClient } from '@/lib/github';
+import { canCreateProject, canConnectPrivateRepo } from '@/lib/billing';
 import crypto from 'crypto';
 
 export async function GET() {
@@ -33,9 +34,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check billing: can user create another project?
+    const projectCheck = await canCreateProject(session.userId);
+    if (!projectCheck.allowed) {
+      return NextResponse.json(
+        { error: projectCheck.reason, requiredPlan: projectCheck.requiredPlan },
+        { status: 403 }
+      );
+    }
+
     const [owner, repoName] = repoFullName.split('/');
     const github = createGitHubClient(session.accessToken);
     const repo = await github.getRepo(owner, repoName);
+
+    // Check billing: can user connect private repos?
+    if (repo.private) {
+      const privateCheck = await canConnectPrivateRepo(session.userId);
+      if (!privateCheck.allowed) {
+        return NextResponse.json(
+          { error: privateCheck.reason, requiredPlan: privateCheck.requiredPlan },
+          { status: 403 }
+        );
+      }
+    }
 
     // Generate unique slug
     const slug = repoName

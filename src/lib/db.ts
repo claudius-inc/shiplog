@@ -5,6 +5,7 @@
 import { createClient, type Client, type InStatement } from '@libsql/client';
 import type { User, Project, ChangelogEntry, Changelog, Category, BrandingConfig } from './types';
 import { DEFAULT_BRANDING } from './types';
+import type { PlanId } from './tiers';
 
 let _client: Client | null = null;
 
@@ -83,6 +84,23 @@ const SCHEMA_SQL = `
   );
 `;
 
+const SUBSCRIPTIONS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT UNIQUE,
+    plan_id TEXT NOT NULL DEFAULT 'free',
+    status TEXT NOT NULL DEFAULT 'active',
+    current_period_start TEXT,
+    current_period_end TEXT,
+    cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id)
+  );
+`;
+
 const BRANDING_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS project_branding (
     project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
@@ -121,6 +139,16 @@ async function ensureSchema(): Promise<void> {
   for (const stmt of statements) {
     await client.execute(stmt);
   }
+  // Subscriptions table
+  const subStatements: InStatement[] = SUBSCRIPTIONS_TABLE_SQL
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(s => s + ';');
+  for (const stmt of subStatements) {
+    await client.execute(stmt);
+  }
+
   // Branding table
   const brandingStatements: InStatement[] = BRANDING_TABLE_SQL
     .split(';')
@@ -462,6 +490,117 @@ export async function upsertProjectBranding(
   });
 
   return merged;
+}
+
+// ============================================================================
+// Subscription Operations
+// ============================================================================
+
+export interface Subscription {
+  id: number;
+  user_id: number;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan_id: PlanId;
+  status: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getSubscription(userId: number): Promise<Subscription | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM subscriptions WHERE user_id = ?',
+    args: [userId],
+  });
+  if (!result.rows[0]) return undefined;
+  const row = result.rows[0] as Record<string, unknown>;
+  return {
+    ...rowToObject<Subscription>(row),
+    cancel_at_period_end: Boolean(row.cancel_at_period_end),
+    plan_id: (row.plan_id as PlanId) || 'free',
+  };
+}
+
+export async function getSubscriptionByStripeCustomerId(customerId: string): Promise<Subscription | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM subscriptions WHERE stripe_customer_id = ?',
+    args: [customerId],
+  });
+  if (!result.rows[0]) return undefined;
+  const row = result.rows[0] as Record<string, unknown>;
+  return {
+    ...rowToObject<Subscription>(row),
+    cancel_at_period_end: Boolean(row.cancel_at_period_end),
+    plan_id: (row.plan_id as PlanId) || 'free',
+  };
+}
+
+export async function getSubscriptionByStripeSubId(subId: string): Promise<Subscription | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM subscriptions WHERE stripe_subscription_id = ?',
+    args: [subId],
+  });
+  if (!result.rows[0]) return undefined;
+  const row = result.rows[0] as Record<string, unknown>;
+  return {
+    ...rowToObject<Subscription>(row),
+    cancel_at_period_end: Boolean(row.cancel_at_period_end),
+    plan_id: (row.plan_id as PlanId) || 'free',
+  };
+}
+
+export async function upsertSubscription(data: {
+  user_id: number;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  plan_id: PlanId;
+  status: string;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+}): Promise<Subscription> {
+  await ensureSchema();
+  const client = getClient();
+
+  await client.execute({
+    sql: `INSERT INTO subscriptions (
+            user_id, stripe_customer_id, stripe_subscription_id, plan_id, status,
+            current_period_start, current_period_end, cancel_at_period_end
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(user_id) DO UPDATE SET
+            stripe_customer_id = COALESCE(excluded.stripe_customer_id, subscriptions.stripe_customer_id),
+            stripe_subscription_id = COALESCE(excluded.stripe_subscription_id, subscriptions.stripe_subscription_id),
+            plan_id = excluded.plan_id,
+            status = excluded.status,
+            current_period_start = COALESCE(excluded.current_period_start, subscriptions.current_period_start),
+            current_period_end = COALESCE(excluded.current_period_end, subscriptions.current_period_end),
+            cancel_at_period_end = excluded.cancel_at_period_end,
+            updated_at = datetime('now')`,
+    args: [
+      data.user_id,
+      data.stripe_customer_id || null,
+      data.stripe_subscription_id || null,
+      data.plan_id,
+      data.status,
+      data.current_period_start || null,
+      data.current_period_end || null,
+      data.cancel_at_period_end ? 1 : 0,
+    ],
+  });
+
+  return (await getSubscription(data.user_id))!;
+}
+
+export async function getUserPlan(userId: number): Promise<PlanId> {
+  const sub = await getSubscription(userId);
+  if (!sub || sub.status !== 'active') return 'free';
+  return sub.plan_id;
 }
 
 export { getClient };

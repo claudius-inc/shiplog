@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { getProjectById, getProjectBranding, upsertProjectBranding } from '@/lib/db';
+import { checkFeatureAccess } from '@/lib/billing';
 import type { BrandingConfig } from '@/lib/types';
 
 // Validate hex color
@@ -58,6 +59,15 @@ export async function PUT(request: NextRequest) {
   const project = await getProjectById(projectId);
   if (!project || project.user_id !== session.userId) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // Check billing: custom branding requires Pro+
+  const brandingCheck = await checkFeatureAccess(session.userId, 'customBranding');
+  if (!brandingCheck.allowed) {
+    return NextResponse.json(
+      { error: brandingCheck.reason, requiredPlan: brandingCheck.requiredPlan },
+      { status: 403 }
+    );
   }
 
   // Validate colors

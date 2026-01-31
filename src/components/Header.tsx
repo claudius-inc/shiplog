@@ -10,7 +10,7 @@ interface HeaderProps {
   session?: Session | null;
 }
 
-export function Header({ session }: HeaderProps) {
+export default function Header({ session }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -19,6 +19,12 @@ export function Header({ session }: HeaderProps) {
         </Link>
 
         <nav className="flex items-center gap-6">
+          <Link
+            href="/pricing"
+            className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            Pricing
+          </Link>
           {session ? (
             <>
               <Link
@@ -26,6 +32,12 @@ export function Header({ session }: HeaderProps) {
                 className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
               >
                 Dashboard
+              </Link>
+              <Link
+                href="/dashboard/billing"
+                className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+              >
+                Billing
               </Link>
               <a
                 href="/api/auth/logout"
