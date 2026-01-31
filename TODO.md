@@ -40,6 +40,13 @@
 - [x] Public REST API (v1): API key auth, read/write scopes, /api/v1/projects + /api/v1/entries, Pro+ gated
 - [x] API key management: generate/revoke, expiry, scope control, dashboard component
 
+## Phase 5: CI/CD & Project Hygiene
+- [x] GitHub Actions CI workflow (typecheck, lint, test, build — parallel jobs)
+- [x] Vercel preview deploy workflow (auto-deploy PRs with comment)
+- [x] Dependabot config (weekly npm + actions, grouped PRs)
+- [x] MIT license
+- [ ] Push CI workflow files (PAT needs `workflow` scope — ask Mr Z to update token or push manually)
+
 ## Phase 4: Monetize
 - [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)
 - [x] Free tier: public repos only (enforcement in projects API)
