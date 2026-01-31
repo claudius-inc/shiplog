@@ -38,3 +38,8 @@ next-env.d.ts
 *.db
 *.sqlite
 data/
+
+# Secrets
+*.p8
+*.key
+.credentials/
