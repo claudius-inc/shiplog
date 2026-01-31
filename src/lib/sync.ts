@@ -15,12 +15,12 @@ export interface SyncResult {
 }
 
 export async function syncProject(projectId: number): Promise<SyncResult> {
-  const project = getProjectById(projectId);
+  const project = await getProjectById(projectId);
   if (!project) {
     throw new Error(`Project ${projectId} not found`);
   }
 
-  const user = getUserById(project.user_id);
+  const user = await getUserById(project.user_id);
   if (!user) {
     throw new Error(`User ${project.user_id} not found`);
   }
@@ -63,7 +63,7 @@ export async function syncProject(projectId: number): Promise<SyncResult> {
         });
 
         // Upsert the entry
-        upsertChangelogEntry({
+        await upsertChangelogEntry({
           project_id: project.id,
           pr_number: pr.number,
           pr_title: pr.title,
@@ -86,7 +86,7 @@ export async function syncProject(projectId: number): Promise<SyncResult> {
     }
 
     // Update last sync timestamp
-    updateProjectSync(projectId);
+    await updateProjectSync(projectId);
 
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -109,7 +109,7 @@ export async function syncProjectFromWebhook(
   }
 ): Promise<ChangelogEntry | null> {
   const { getProjectByWebhookRepoId } = await import('./db');
-  const project = getProjectByWebhookRepoId(repoId);
+  const project = await getProjectByWebhookRepoId(repoId);
   if (!project) {
     console.log(`No project found for repo ${repoId}`);
     return null;

@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { createProject, getProjectsByUser } from '@/lib/db';
+import { createProject, getProjectsByUser, updateProjectSync } from '@/lib/db';
 import { createGitHubClient } from '@/lib/github';
 import crypto from 'crypto';
 
@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const projects = getProjectsByUser(session.userId);
+  const projects = await getProjectsByUser(session.userId);
   return NextResponse.json({ projects });
 }
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
 
-    const project = createProject({
+    const project = await createProject({
       user_id: session.userId,
       github_repo_id: repo.id,
       name: repo.name,
@@ -64,8 +64,7 @@ export async function POST(request: NextRequest) {
         webhookSecret
       );
 
-      const { updateProjectSync } = await import('@/lib/db');
-      updateProjectSync(project.id, webhook.id, webhookSecret);
+      await updateProjectSync(project.id, webhook.id, webhookSecret);
     } catch (error) {
       console.warn('Webhook creation failed (will use manual sync):', error);
     }

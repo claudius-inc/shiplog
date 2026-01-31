@@ -15,7 +15,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
+  const project = await getProjectBySlug(slug);
 
   if (!project) {
     return { title: 'Changelog Not Found' };
@@ -41,14 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PublicChangelogPage({ params }: PageProps) {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
+  const project = await getProjectBySlug(slug);
 
   if (!project) {
     notFound();
   }
 
-  const entries = getEntriesByProject(project.id, { limit: 200 });
-  const totalEntries = getEntryCount(project.id);
+  const entries = await getEntriesByProject(project.id, { limit: 200 });
+  const totalEntries = await getEntryCount(project.id);
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--background)]">

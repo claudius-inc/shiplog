@@ -22,13 +22,16 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     redirect('/api/auth/github');
   }
 
-  const project = getProjectById(Number(projectId));
+  const project = await getProjectById(Number(projectId));
   if (!project || project.user_id !== session.userId) {
     notFound();
   }
 
-  const entries = getEntriesByProject(project.id, { limit: 50 });
-  const totalEntries = getEntryCount(project.id);
+  const entries = await getEntriesByProject(project.id, { limit: 50 });
+  const totalEntries = await getEntryCount(project.id);
+  const featureCount = await getEntryCount(project.id, 'feature');
+  const fixCount = await getEntryCount(project.id, 'fix');
+  const improvementCount = await getEntryCount(project.id, 'improvement');
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -70,9 +73,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total', value: totalEntries, icon: '📝' },
-            { label: 'Features', value: getEntryCount(project.id, 'feature'), icon: '✨' },
-            { label: 'Fixes', value: getEntryCount(project.id, 'fix'), icon: '🐛' },
-            { label: 'Improvements', value: getEntryCount(project.id, 'improvement'), icon: '💅' },
+            { label: 'Features', value: featureCount, icon: '✨' },
+            { label: 'Fixes', value: fixCount, icon: '🐛' },
+            { label: 'Improvements', value: improvementCount, icon: '💅' },
           ].map((stat) => (
             <div key={stat.label} className="glass-card p-4">
               <div className="flex items-center gap-2 mb-1">

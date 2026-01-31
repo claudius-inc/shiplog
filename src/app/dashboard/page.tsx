@@ -16,7 +16,7 @@ export default async function DashboardPage() {
     redirect('/api/auth/github');
   }
 
-  const projects = getProjectsByUser(session.userId);
+  const projects = await getProjectsByUser(session.userId);
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -16,7 +16,7 @@ Connect your GitHub repo → AI categorizes merged PRs → beautiful hosted chan
 ## Stack
 
 - **Next.js 14** (App Router)
-- **SQLite** (better-sqlite3) — zero-config persistence
+- **libSQL / Turso** — serverless-compatible database (local SQLite or hosted Turso)
 - **Tailwind CSS** — dark-mode-first design
 - **OpenAI** (gpt-4o-mini) — PR categorization
 - **GitHub API** — OAuth + webhooks + PR data
@@ -30,6 +30,7 @@ npm install
 # Copy env vars
 cp .env.example .env.local
 # Fill in GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, OPENAI_API_KEY
+# For production: set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN
 
 # Initialize database
 npm run db:init
@@ -67,7 +68,7 @@ src/
 └── lib/
     ├── ai.ts                      # OpenAI categorization
     ├── changelog.ts               # Markdown, RSS, date helpers
-    ├── db.ts                      # SQLite layer
+    ├── db.ts                      # libSQL/Turso database layer
     ├── db-init.ts                 # DB initialization script
     ├── github.ts                  # GitHub API client
     ├── session.ts                 # Cookie-based auth sessions

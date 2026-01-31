@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify ownership
-    const project = getProjectById(projectId);
+    const project = await getProjectById(projectId);
     if (!project || project.user_id !== session.userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }

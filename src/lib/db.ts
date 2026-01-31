@@ -1,143 +1,180 @@
 // ============================================================================
-// Database Layer — SQLite via better-sqlite3
+// Database Layer — libSQL (Turso-compatible, works on Vercel)
 // ============================================================================
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { createClient, type Client, type InStatement } from '@libsql/client';
 import type { User, Project, ChangelogEntry, Changelog, Category } from './types';
 
-// Ensure data directory exists
-const DATA_DIR = path.join(process.cwd(), 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+let _client: Client | null = null;
 
-const DB_PATH = path.join(DATA_DIR, 'shiplog.db');
-
-let _db: Database.Database | null = null;
-
-function getDb(): Database.Database {
-  if (!_db) {
-    _db = new Database(DB_PATH);
-    _db.pragma('journal_mode = WAL');
-    _db.pragma('foreign_keys = ON');
-    initializeSchema(_db);
+function getClient(): Client {
+  if (!_client) {
+    _client = createClient({
+      url: process.env.TURSO_DATABASE_URL || 'file:data/shiplog.db',
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
   }
-  return _db;
+  return _client;
 }
 
-function initializeSchema(db: Database.Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      github_id INTEGER UNIQUE NOT NULL,
-      username TEXT UNIQUE NOT NULL,
-      display_name TEXT NOT NULL,
-      avatar_url TEXT NOT NULL DEFAULT '',
-      access_token TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+// ============================================================================
+// Schema Initialization
+// ============================================================================
 
-    CREATE TABLE IF NOT EXISTS projects (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      github_repo_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL,
-      full_name TEXT NOT NULL,
-      description TEXT,
-      default_branch TEXT NOT NULL DEFAULT 'main',
-      webhook_id INTEGER,
-      webhook_secret TEXT,
-      last_synced_at TEXT,
-      is_public INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(user_id, github_repo_id)
-    );
+const SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    github_id INTEGER UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
+    display_name TEXT NOT NULL,
+    avatar_url TEXT NOT NULL DEFAULT '',
+    access_token TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 
-    CREATE TABLE IF NOT EXISTS changelog_entries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      changelog_id INTEGER REFERENCES changelogs(id) ON DELETE SET NULL,
-      pr_number INTEGER NOT NULL,
-      pr_title TEXT NOT NULL,
-      pr_body TEXT,
-      pr_url TEXT NOT NULL,
-      pr_author TEXT NOT NULL,
-      pr_author_avatar TEXT,
-      pr_merged_at TEXT NOT NULL,
-      category TEXT NOT NULL CHECK(category IN ('feature', 'fix', 'improvement', 'breaking')),
-      summary TEXT NOT NULL,
-      emoji TEXT NOT NULL DEFAULT '📝',
-      is_published INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(project_id, pr_number)
-    );
+  CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    github_repo_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    description TEXT,
+    default_branch TEXT NOT NULL DEFAULT 'main',
+    webhook_id INTEGER,
+    webhook_secret TEXT,
+    last_synced_at TEXT,
+    is_public INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, github_repo_id)
+  );
 
-    CREATE TABLE IF NOT EXISTS changelogs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      version TEXT,
-      title TEXT NOT NULL,
-      published_at TEXT NOT NULL DEFAULT (datetime('now')),
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+  CREATE TABLE IF NOT EXISTS changelog_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    changelog_id INTEGER REFERENCES changelogs(id) ON DELETE SET NULL,
+    pr_number INTEGER NOT NULL,
+    pr_title TEXT NOT NULL,
+    pr_body TEXT,
+    pr_url TEXT NOT NULL,
+    pr_author TEXT NOT NULL,
+    pr_author_avatar TEXT,
+    pr_merged_at TEXT NOT NULL,
+    category TEXT NOT NULL CHECK(category IN ('feature', 'fix', 'improvement', 'breaking')),
+    summary TEXT NOT NULL,
+    emoji TEXT NOT NULL DEFAULT '📝',
+    is_published INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(project_id, pr_number)
+  );
 
-    CREATE INDEX IF NOT EXISTS idx_entries_project ON changelog_entries(project_id);
-    CREATE INDEX IF NOT EXISTS idx_entries_category ON changelog_entries(category);
-    CREATE INDEX IF NOT EXISTS idx_entries_merged ON changelog_entries(pr_merged_at);
-    CREATE INDEX IF NOT EXISTS idx_changelogs_project ON changelogs(project_id);
-    CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
-    CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
-  `);
+  CREATE TABLE IF NOT EXISTS changelogs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    version TEXT,
+    title TEXT NOT NULL,
+    published_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
+const INDEXES_SQL = [
+  'CREATE INDEX IF NOT EXISTS idx_entries_project ON changelog_entries(project_id)',
+  'CREATE INDEX IF NOT EXISTS idx_entries_category ON changelog_entries(category)',
+  'CREATE INDEX IF NOT EXISTS idx_entries_merged ON changelog_entries(pr_merged_at)',
+  'CREATE INDEX IF NOT EXISTS idx_changelogs_project ON changelogs(project_id)',
+  'CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug)',
+  'CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id)',
+];
+
+let _initialized = false;
+
+async function ensureSchema(): Promise<void> {
+  if (_initialized) return;
+  const client = getClient();
+  // Execute schema as batch of statements
+  const statements: InStatement[] = SCHEMA_SQL
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(s => s + ';');
+  
+  for (const stmt of statements) {
+    await client.execute(stmt);
+  }
+  for (const idx of INDEXES_SQL) {
+    await client.execute(idx);
+  }
+  await client.execute('PRAGMA foreign_keys = ON');
+  _initialized = true;
+}
+
+// Helper: convert libSQL row to typed object
+function rowToObject<T>(row: Record<string, unknown>): T {
+  return row as unknown as T;
 }
 
 // ============================================================================
 // User Operations
 // ============================================================================
 
-export function upsertUser(data: {
+export async function upsertUser(data: {
   github_id: number;
   username: string;
   display_name: string;
   avatar_url: string;
   access_token: string;
-}): User {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO users (github_id, username, display_name, avatar_url, access_token)
-    VALUES (@github_id, @username, @display_name, @avatar_url, @access_token)
-    ON CONFLICT(github_id) DO UPDATE SET
-      username = @username,
-      display_name = @display_name,
-      avatar_url = @avatar_url,
-      access_token = @access_token,
-      updated_at = datetime('now')
-    RETURNING *
-  `);
-  return stmt.get(data) as User;
+}): Promise<User> {
+  await ensureSchema();
+  const client = getClient();
+  
+  // libSQL doesn't support RETURNING in all cases, so do upsert then select
+  await client.execute({
+    sql: `INSERT INTO users (github_id, username, display_name, avatar_url, access_token)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(github_id) DO UPDATE SET
+            username = excluded.username,
+            display_name = excluded.display_name,
+            avatar_url = excluded.avatar_url,
+            access_token = excluded.access_token,
+            updated_at = datetime('now')`,
+    args: [data.github_id, data.username, data.display_name, data.avatar_url, data.access_token],
+  });
+  
+  const result = await client.execute({
+    sql: 'SELECT * FROM users WHERE github_id = ?',
+    args: [data.github_id],
+  });
+  return rowToObject<User>(result.rows[0] as Record<string, unknown>);
 }
 
-export function getUserById(id: number): User | undefined {
-  const db = getDb();
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+export async function getUserById(id: number): Promise<User | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM users WHERE id = ?',
+    args: [id],
+  });
+  return result.rows[0] ? rowToObject<User>(result.rows[0] as Record<string, unknown>) : undefined;
 }
 
-export function getUserByGithubId(githubId: number): User | undefined {
-  const db = getDb();
-  return db.prepare('SELECT * FROM users WHERE github_id = ?').get(githubId) as User | undefined;
+export async function getUserByGithubId(githubId: number): Promise<User | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM users WHERE github_id = ?',
+    args: [githubId],
+  });
+  return result.rows[0] ? rowToObject<User>(result.rows[0] as Record<string, unknown>) : undefined;
 }
 
 // ============================================================================
 // Project Operations
 // ============================================================================
 
-export function createProject(data: {
+export async function createProject(data: {
   user_id: number;
   github_repo_id: number;
   name: string;
@@ -145,55 +182,80 @@ export function createProject(data: {
   full_name: string;
   description: string | null;
   default_branch: string;
-}): Project {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO projects (user_id, github_repo_id, name, slug, full_name, description, default_branch)
-    VALUES (@user_id, @github_repo_id, @name, @slug, @full_name, @description, @default_branch)
-    RETURNING *
-  `);
-  return stmt.get(data) as Project;
+}): Promise<Project> {
+  await ensureSchema();
+  const client = getClient();
+  
+  const insertResult = await client.execute({
+    sql: `INSERT INTO projects (user_id, github_repo_id, name, slug, full_name, description, default_branch)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [data.user_id, data.github_repo_id, data.name, data.slug, data.full_name, data.description, data.default_branch],
+  });
+  
+  const result = await client.execute({
+    sql: 'SELECT * FROM projects WHERE id = ?',
+    args: [Number(insertResult.lastInsertRowid)],
+  });
+  return rowToObject<Project>(result.rows[0] as Record<string, unknown>);
 }
 
-export function getProjectsByUser(userId: number): Project[] {
-  const db = getDb();
-  return db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as Project[];
+export async function getProjectsByUser(userId: number): Promise<Project[]> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC',
+    args: [userId],
+  });
+  return result.rows.map(r => rowToObject<Project>(r as Record<string, unknown>));
 }
 
-export function getProjectBySlug(slug: string): Project | undefined {
-  const db = getDb();
-  return db.prepare('SELECT * FROM projects WHERE slug = ? AND is_public = 1').get(slug) as Project | undefined;
+export async function getProjectBySlug(slug: string): Promise<Project | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM projects WHERE slug = ? AND is_public = 1',
+    args: [slug],
+  });
+  return result.rows[0] ? rowToObject<Project>(result.rows[0] as Record<string, unknown>) : undefined;
 }
 
-export function getProjectById(id: number): Project | undefined {
-  const db = getDb();
-  return db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as Project | undefined;
+export async function getProjectById(id: number): Promise<Project | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM projects WHERE id = ?',
+    args: [id],
+  });
+  return result.rows[0] ? rowToObject<Project>(result.rows[0] as Record<string, unknown>) : undefined;
 }
 
-export function updateProjectSync(projectId: number, webhookId?: number, webhookSecret?: string): void {
-  const db = getDb();
+export async function updateProjectSync(projectId: number, webhookId?: number, webhookSecret?: string): Promise<void> {
+  await ensureSchema();
+  const client = getClient();
   if (webhookId && webhookSecret) {
-    db.prepare(`
-      UPDATE projects SET last_synced_at = datetime('now'), webhook_id = ?, webhook_secret = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(webhookId, webhookSecret, projectId);
+    await client.execute({
+      sql: `UPDATE projects SET last_synced_at = datetime('now'), webhook_id = ?, webhook_secret = ?, updated_at = datetime('now') WHERE id = ?`,
+      args: [webhookId, webhookSecret, projectId],
+    });
   } else {
-    db.prepare(`
-      UPDATE projects SET last_synced_at = datetime('now'), updated_at = datetime('now') WHERE id = ?
-    `).run(projectId);
+    await client.execute({
+      sql: `UPDATE projects SET last_synced_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
+      args: [projectId],
+    });
   }
 }
 
-export function getProjectByWebhookRepoId(repoId: number): Project | undefined {
-  const db = getDb();
-  return db.prepare('SELECT * FROM projects WHERE github_repo_id = ?').get(repoId) as Project | undefined;
+export async function getProjectByWebhookRepoId(repoId: number): Promise<Project | undefined> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM projects WHERE github_repo_id = ?',
+    args: [repoId],
+  });
+  return result.rows[0] ? rowToObject<Project>(result.rows[0] as Record<string, unknown>) : undefined;
 }
 
 // ============================================================================
 // Changelog Entry Operations
 // ============================================================================
 
-export function upsertChangelogEntry(data: {
+export async function upsertChangelogEntry(data: {
   project_id: number;
   pr_number: number;
   pr_title: string;
@@ -205,93 +267,111 @@ export function upsertChangelogEntry(data: {
   category: Category;
   summary: string;
   emoji: string;
-}): ChangelogEntry {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO changelog_entries (
-      project_id, pr_number, pr_title, pr_body, pr_url, pr_author,
-      pr_author_avatar, pr_merged_at, category, summary, emoji
-    ) VALUES (
-      @project_id, @pr_number, @pr_title, @pr_body, @pr_url, @pr_author,
-      @pr_author_avatar, @pr_merged_at, @category, @summary, @emoji
-    )
-    ON CONFLICT(project_id, pr_number) DO UPDATE SET
-      pr_title = @pr_title,
-      pr_body = @pr_body,
-      category = @category,
-      summary = @summary,
-      emoji = @emoji,
-      updated_at = datetime('now')
-    RETURNING *
-  `);
-  return stmt.get(data) as ChangelogEntry;
+}): Promise<ChangelogEntry> {
+  await ensureSchema();
+  const client = getClient();
+  
+  await client.execute({
+    sql: `INSERT INTO changelog_entries (
+            project_id, pr_number, pr_title, pr_body, pr_url, pr_author,
+            pr_author_avatar, pr_merged_at, category, summary, emoji
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(project_id, pr_number) DO UPDATE SET
+            pr_title = excluded.pr_title,
+            pr_body = excluded.pr_body,
+            category = excluded.category,
+            summary = excluded.summary,
+            emoji = excluded.emoji,
+            updated_at = datetime('now')`,
+    args: [
+      data.project_id, data.pr_number, data.pr_title, data.pr_body,
+      data.pr_url, data.pr_author, data.pr_author_avatar, data.pr_merged_at,
+      data.category, data.summary, data.emoji,
+    ],
+  });
+  
+  const result = await client.execute({
+    sql: 'SELECT * FROM changelog_entries WHERE project_id = ? AND pr_number = ?',
+    args: [data.project_id, data.pr_number],
+  });
+  return rowToObject<ChangelogEntry>(result.rows[0] as Record<string, unknown>);
 }
 
-export function getEntriesByProject(
+export async function getEntriesByProject(
   projectId: number,
   options?: { category?: Category; limit?: number; offset?: number }
-): ChangelogEntry[] {
-  const db = getDb();
-  let query = 'SELECT * FROM changelog_entries WHERE project_id = ? AND is_published = 1';
-  const params: (number | string)[] = [projectId];
+): Promise<ChangelogEntry[]> {
+  await ensureSchema();
+  let sql = 'SELECT * FROM changelog_entries WHERE project_id = ? AND is_published = 1';
+  const args: (number | string)[] = [projectId];
 
   if (options?.category) {
-    query += ' AND category = ?';
-    params.push(options.category);
+    sql += ' AND category = ?';
+    args.push(options.category);
   }
 
-  query += ' ORDER BY pr_merged_at DESC';
+  sql += ' ORDER BY pr_merged_at DESC';
 
   if (options?.limit) {
-    query += ' LIMIT ?';
-    params.push(options.limit);
+    sql += ' LIMIT ?';
+    args.push(options.limit);
   }
 
   if (options?.offset) {
-    query += ' OFFSET ?';
-    params.push(options.offset);
+    sql += ' OFFSET ?';
+    args.push(options.offset);
   }
 
-  return db.prepare(query).all(...params) as ChangelogEntry[];
+  const result = await getClient().execute({ sql, args });
+  return result.rows.map(r => rowToObject<ChangelogEntry>(r as Record<string, unknown>));
 }
 
-export function getEntryCount(projectId: number, category?: Category): number {
-  const db = getDb();
-  let query = 'SELECT COUNT(*) as count FROM changelog_entries WHERE project_id = ? AND is_published = 1';
-  const params: (number | string)[] = [projectId];
+export async function getEntryCount(projectId: number, category?: Category): Promise<number> {
+  await ensureSchema();
+  let sql = 'SELECT COUNT(*) as count FROM changelog_entries WHERE project_id = ? AND is_published = 1';
+  const args: (number | string)[] = [projectId];
 
   if (category) {
-    query += ' AND category = ?';
-    params.push(category);
+    sql += ' AND category = ?';
+    args.push(category);
   }
 
-  const result = db.prepare(query).get(...params) as { count: number };
-  return result.count;
+  const result = await getClient().execute({ sql, args });
+  const row = result.rows[0] as Record<string, unknown>;
+  return Number(row.count);
 }
 
 // ============================================================================
 // Changelog Operations
 // ============================================================================
 
-export function createChangelog(data: {
+export async function createChangelog(data: {
   project_id: number;
   version: string | null;
   title: string;
-}): Changelog {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO changelogs (project_id, version, title)
-    VALUES (@project_id, @version, @title)
-    RETURNING *
-  `);
-  return stmt.get(data) as Changelog;
+}): Promise<Changelog> {
+  await ensureSchema();
+  const client = getClient();
+  
+  const insertResult = await client.execute({
+    sql: 'INSERT INTO changelogs (project_id, version, title) VALUES (?, ?, ?)',
+    args: [data.project_id, data.version, data.title],
+  });
+  
+  const result = await client.execute({
+    sql: 'SELECT * FROM changelogs WHERE id = ?',
+    args: [Number(insertResult.lastInsertRowid)],
+  });
+  return rowToObject<Changelog>(result.rows[0] as Record<string, unknown>);
 }
 
-export function getChangelogsByProject(projectId: number): Changelog[] {
-  const db = getDb();
-  return db.prepare(
-    'SELECT * FROM changelogs WHERE project_id = ? ORDER BY published_at DESC'
-  ).all(projectId) as Changelog[];
+export async function getChangelogsByProject(projectId: number): Promise<Changelog[]> {
+  await ensureSchema();
+  const result = await getClient().execute({
+    sql: 'SELECT * FROM changelogs WHERE project_id = ? ORDER BY published_at DESC',
+    args: [projectId],
+  });
+  return result.rows.map(r => rowToObject<Changelog>(r as Record<string, unknown>));
 }
 
-export { getDb };
+export { getClient };
