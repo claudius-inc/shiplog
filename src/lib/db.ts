@@ -9,7 +9,7 @@ import type { PlanId } from './tiers';
 
 let _client: Client | null = null;
 
-function getClient(): Client {
+export function getClient(): Client {
   if (!_client) {
     _client = createClient({
       url: process.env.TURSO_DATABASE_URL || 'file:data/shiplog.db',
@@ -603,4 +603,4 @@ export async function getUserPlan(userId: number): Promise<PlanId> {
   return sub.plan_id;
 }
 
-export { getClient };
+// getClient already exported at definition
