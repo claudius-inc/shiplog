@@ -31,6 +31,7 @@
 - [x] SEO: JSON-LD structured data, sitemap.xml, robots.txt, PWA manifest, page metadata
 - [x] Error handling: global + dashboard error boundaries, 404 page, loading states
 - [x] Production hardening: middleware (rate limiting, security headers, CSRF), health check endpoint, session crypto fix, input sanitization lib
+- [x] Test suite: 104 tests across sanitize, tiers, AI fallback, changelog modules (Vitest)
 
 ## Phase 4: Monetize
 - [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)
