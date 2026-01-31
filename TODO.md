@@ -22,9 +22,9 @@
 
 ## Phase 3.5: Polish
 - [x] Embeddable changelog widget (JS + JSON API + dashboard embed code)
-- [ ] Email digest templates (weekly changelog summary)
+- [x] Email digest system (templates, subscriber mgmt, provider abstraction, API routes, dashboard settings)
 - [ ] Custom branding options (logo, colors)
-- [ ] Changelog search
+- [x] Changelog search (debounced LIKE search with result UI)
 
 ## Phase 4: Monetize
 - [ ] Add Stripe integration for paid tiers
