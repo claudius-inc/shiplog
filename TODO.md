@@ -46,6 +46,8 @@
 - [x] Dependabot config (weekly npm + actions, grouped PRs)
 - [x] MIT license
 - [ ] Push CI workflow files (PAT needs `workflow` scope — ask Mr Z to update token or push manually)
+- [x] OpenAPI 3.0.3 spec (public/openapi.yaml) — full documentation of /api/v1
+- [x] API reference docs page (/docs/api) — interactive examples, param tables, CI/CD guide
 
 ## Phase 4: Monetize
 - [x] Add Stripe integration for paid tiers (checkout, webhooks, portal, status API)
