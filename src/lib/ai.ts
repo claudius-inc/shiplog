@@ -5,9 +5,16 @@
 import OpenAI from 'openai';
 import type { AICategorization, Category } from './types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openai;
+}
 
 const SYSTEM_PROMPT = `You are a changelog assistant for a software project. Your job is to categorize pull requests and write concise, user-friendly summaries.
 
@@ -43,7 +50,7 @@ export async function categorizePR(data: {
   try {
     const userMessage = buildUserMessage(data);
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },

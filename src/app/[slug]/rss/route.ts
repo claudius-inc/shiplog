@@ -13,13 +13,13 @@ interface RouteProps {
 
 export async function GET(request: NextRequest, { params }: RouteProps) {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
+  const project = await getProjectBySlug(slug);
 
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
-  const entries = getEntriesByProject(project.id, { limit: 50 });
+  const entries = await getEntriesByProject(project.id, { limit: 50 });
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
   const feed = new RSS({

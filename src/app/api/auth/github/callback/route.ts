@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const githubUser = await github.getAuthenticatedUser();
 
     // Create or update user in database
-    const user = upsertUser({
+    const user = await upsertUser({
       github_id: githubUser.id,
       username: githubUser.login,
       display_name: githubUser.name || githubUser.login,

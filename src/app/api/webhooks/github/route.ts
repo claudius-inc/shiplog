@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify webhook signature
-    const project = getProjectByWebhookRepoId(repoId);
+    const project = await getProjectByWebhookRepoId(repoId);
     if (!project) {
       return NextResponse.json({ error: 'Unknown repo' }, { status: 404 });
     }
