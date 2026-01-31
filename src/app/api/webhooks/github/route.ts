@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { syncProjectFromWebhook } from '@/lib/sync';
 import { getProjectByWebhookRepoId } from '@/lib/db';
+import { enqueueWebhook } from '@/lib/webhook-queue';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,22 +52,41 @@ export async function POST(request: NextRequest) {
 
     // Process the merged PR
     const pr = payload.pull_request;
-    const entry = await syncProjectFromWebhook(repoId, {
-      number: pr.number,
-      title: pr.title,
-      body: pr.body,
-      html_url: pr.html_url,
-      user: {
-        login: pr.user.login,
-        avatar_url: pr.user.avatar_url,
-      },
-      merged_at: pr.merged_at,
-    });
+    try {
+      const entry = await syncProjectFromWebhook(repoId, {
+        number: pr.number,
+        title: pr.title,
+        body: pr.body,
+        html_url: pr.html_url,
+        user: {
+          login: pr.user.login,
+          avatar_url: pr.user.avatar_url,
+        },
+        merged_at: pr.merged_at,
+      });
 
-    return NextResponse.json({
-      success: true,
-      entry: entry ? { id: entry.id, category: entry.category } : null,
-    });
+      return NextResponse.json({
+        success: true,
+        entry: entry ? { id: entry.id, category: entry.category } : null,
+      });
+    } catch (syncError) {
+      // Processing failed — queue for retry instead of losing the PR
+      const errorMsg = syncError instanceof Error ? syncError.message : 'Unknown sync error';
+      console.error('Webhook sync failed, queueing for retry:', errorMsg);
+
+      try {
+        const queueId = await enqueueWebhook('pull_request', payload, errorMsg);
+        return NextResponse.json({
+          success: false,
+          queued: true,
+          queueId,
+          error: 'Sync failed, queued for retry',
+        });
+      } catch (queueError) {
+        console.error('Failed to queue webhook:', queueError);
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+      }
+    }
   } catch (error) {
     console.error('Webhook error:', error);
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
