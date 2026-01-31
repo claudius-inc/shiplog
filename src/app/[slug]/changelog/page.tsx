@@ -9,7 +9,7 @@ import { Logo } from '@/components/Logo';
 import { ChangelogFeed } from '@/components/ChangelogFeed';
 import SubscribeForm from '@/components/SubscribeForm';
 import ChangelogSearch from '@/components/ChangelogSearch';
-import { getProjectBySlug, getEntriesByProject, getEntryCount } from '@/lib/db';
+import { getProjectBySlug, getEntriesByProject, getEntryCount, getProjectBranding } from '@/lib/db';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -51,14 +51,34 @@ export default async function PublicChangelogPage({ params }: PageProps) {
 
   const entries = await getEntriesByProject(project.id, { limit: 200 });
   const totalEntries = await getEntryCount(project.id);
+  const branding = await getProjectBranding(project.id);
+
+  const brandingStyles = {
+    '--brand-primary': branding.primary_color,
+    '--brand-accent': branding.accent_color,
+    '--brand-header-bg': branding.header_bg,
+    '--brand-page-bg': branding.page_bg,
+    '--brand-text': branding.text_color,
+  } as React.CSSProperties;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)]">
+    <div className="min-h-screen flex flex-col" style={{ ...brandingStyles, background: branding.page_bg, color: branding.text_color }}>
       {/* Minimal public header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+      <header
+        className="sticky top-0 z-50 border-b border-zinc-800/50 backdrop-blur-xl"
+        style={{ background: `${branding.header_bg}cc` }}
+      >
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-zinc-200">{project.name}</h1>
+            {branding.logo_url && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={branding.logo_url}
+                alt={`${project.name} logo`}
+                className="w-7 h-7 rounded object-cover"
+              />
+            )}
+            <h1 className="text-lg font-bold" style={{ color: branding.text_color }}>{project.name}</h1>
             <span className="text-xs text-zinc-600 font-mono">{project.full_name}</span>
           </div>
           <div className="flex items-center gap-4">
@@ -110,20 +130,22 @@ export default async function PublicChangelogPage({ params }: PageProps) {
       </main>
 
       {/* Powered-by footer */}
-      <footer className="border-t border-zinc-800/50 py-6">
-        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
-          <p className="text-xs text-zinc-600">
-            Changelog powered by{' '}
-            <a
-              href="https://shiplog.dev"
-              className="text-zinc-400 hover:text-brand-400 transition-colors"
-            >
-              ShipLog
-            </a>
-          </p>
-          <Logo size="sm" />
-        </div>
-      </footer>
+      {!branding.hide_powered_by && (
+        <footer className="border-t border-zinc-800/50 py-6">
+          <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
+            <p className="text-xs text-zinc-600">
+              Changelog powered by{' '}
+              <a
+                href="https://shiplog.dev"
+                className="text-zinc-400 hover:text-brand-400 transition-colors"
+              >
+                ShipLog
+              </a>
+            </p>
+            <Logo size="sm" />
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

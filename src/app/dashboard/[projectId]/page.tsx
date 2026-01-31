@@ -12,6 +12,7 @@ import { getProjectById, getEntriesByProject, getEntryCount } from '@/lib/db';
 import { SyncButton } from './SyncButton';
 import { EmbedCode } from './EmbedCode';
 import DigestSettings from './DigestSettings';
+import BrandingSettings from './BrandingSettings';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -91,6 +92,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
         {/* Embed Widget */}
         <EmbedCode slug={project.slug} projectName={project.name} />
+
+        {/* Custom Branding */}
+        <BrandingSettings projectId={project.id} projectName={project.name} />
 
         {/* Email Digest Settings */}
         <DigestSettings projectId={project.id} />

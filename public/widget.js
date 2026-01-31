@@ -90,17 +90,35 @@
     return div.innerHTML;
   }
 
+  function applyBranding(wrapper, branding) {
+    if (!branding) return;
+    if (branding.text_color) wrapper.style.color = branding.text_color;
+    if (branding.page_bg) wrapper.style.background = branding.page_bg;
+    wrapper.dataset.brandPrimary = branding.primary_color || '';
+    wrapper.dataset.brandAccent = branding.accent_color || '';
+  }
+
   function renderWidget(container, data, opts) {
     container.innerHTML = '';
     var wrapper = document.createElement('div');
     wrapper.className = 'sl-widget' + (opts.theme === 'light' ? ' sl-light' : '');
+    var branding = data.branding || {};
+
+    // Apply custom branding colors
+    applyBranding(wrapper, branding);
 
     // Header
     var header = document.createElement('div');
     header.className = 'sl-header';
+    var logoHtml = branding.logo_url
+      ? '<img src="' + escapeHtml(branding.logo_url) + '" alt="" style="width:20px;height:20px;border-radius:4px;object-fit:cover;margin-right:8px">'
+      : '';
+    var poweredBy = branding.hide_powered_by
+      ? ''
+      : '<a class="sl-powered" href="' + BASE_URL + '" target="_blank" rel="noopener">Powered by ShipLog</a>';
     header.innerHTML =
-      '<span class="sl-title">' + escapeHtml(opts.title || 'Changelog') + '</span>' +
-      '<a class="sl-powered" href="' + BASE_URL + '" target="_blank" rel="noopener">Powered by ShipLog</a>';
+      '<span class="sl-title">' + logoHtml + escapeHtml(opts.title || 'Changelog') + '</span>' +
+      poweredBy;
     wrapper.appendChild(header);
 
     if (!data.entries || data.entries.length === 0) {
