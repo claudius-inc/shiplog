@@ -10,6 +10,7 @@ import { ChangelogEntry } from '@/components/ChangelogEntry';
 import { getSession } from '@/lib/session';
 import { getProjectById, getEntriesByProject, getEntryCount } from '@/lib/db';
 import { SyncButton } from './SyncButton';
+import { EmbedCode } from './EmbedCode';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -87,8 +88,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           ))}
         </div>
 
+        {/* Embed Widget */}
+        <EmbedCode slug={project.slug} projectName={project.name} />
+
         {/* Entries */}
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 mt-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold">Recent Entries</h2>
             <span className="text-sm text-zinc-500">
