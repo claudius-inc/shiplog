@@ -14,4 +14,4 @@ Stack: Next.js 14, Turso (libSQL), Tailwind, OpenAI. Deployed on Vercel.
 
 Free tier: public repos, all features. Pro (coming): private repos, custom domains, teams.
 
-https://shiplog.dev
+https://shiplog-coral.vercel.app
