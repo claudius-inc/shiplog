@@ -4,7 +4,7 @@
 
 **Body:**
 
-Hey everyone! I just launched [ShipLog](https://shiplog.dev) — a tool that turns your merged PRs into polished, public-facing changelogs automatically.
+Hey everyone! I just launched [ShipLog](https://shiplog-coral.vercel.app) — a tool that turns your merged PRs into polished, public-facing changelogs automatically.
 
 ## The problem
 
@@ -14,7 +14,7 @@ I maintain a few open-source projects and SaaS apps, and keeping a changelog upd
 
 1. **Connect your GitHub repo** (one-click OAuth)
 2. **AI reads your PRs** and categorizes them (feature, fix, improvement, breaking change)
-3. **Generates a public changelog page** at `shiplog.dev/your-project`
+3. **Generates a public changelog page** at `shiplog-coral.vercel.app/your-project`
 4. **Keeps it updated** via webhooks — merge a PR, changelog updates automatically
 
 ## Features
@@ -36,4 +36,4 @@ Working on Stripe integration for pro features (private repos, custom domains, t
 
 Would love feedback! What would make you actually use this for your projects?
 
-**Link:** [shiplog.dev](https://shiplog.dev)
+**Link:** [shiplog-coral.vercel.app](https://shiplog-coral.vercel.app)

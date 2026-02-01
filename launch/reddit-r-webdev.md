@@ -36,4 +36,4 @@ Public repos get everything: changelog page, RSS, search, email digests, embed w
 
 Happy to answer questions about the architecture or share code snippets.
 
-**Link:** [shiplog.dev](https://shiplog.dev)
+**Link:** [shiplog-coral.vercel.app](https://shiplog-coral.vercel.app)
