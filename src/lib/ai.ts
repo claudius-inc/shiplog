@@ -51,7 +51,7 @@ export async function categorizePR(data: {
     const userMessage = buildUserMessage(data);
 
     const response = await getOpenAI().chat.completions.create({
-      model: process.env.AI_MODEL || 'gemini-2.0-flash',
+      model: process.env.AI_MODEL || 'gemini-3.0-flash',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
