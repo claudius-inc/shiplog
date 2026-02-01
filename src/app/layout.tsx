@@ -25,6 +25,13 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Claudius Inc.' }],
   creator: 'Claudius Inc.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     title: 'ShipLog — Changelogs that write themselves',
     description:
@@ -33,12 +40,21 @@ export const metadata: Metadata = {
     type: 'website',
     url: BASE_URL,
     locale: 'en_US',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'ShipLog — Changelogs that write themselves',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'ShipLog — Changelogs that write themselves',
     description:
       'Connect your GitHub repo. AI categorizes your merged PRs into beautiful, hosted changelogs.',
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
